@@ -6,6 +6,8 @@
 # This particular example prints the revision at which the project's submodule is checked out.
 # TODO: Only the first submodule (as defined in .gitmodules) is taken into account, that's not good for projects with more than one submodule.
 
+[ -n "$1" ] || { echo "usage: `basename $0` <branch-name>"; exit 1; }
+
 # Extract submodule path from git config.
 [ -f .gitmodules ] || exit 0
 submod_rel_path=$(git config --file .gitmodules --get-regexp '\.path$' | head -1 | awk '{ print $2 }')
