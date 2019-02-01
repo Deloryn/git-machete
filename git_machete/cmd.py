@@ -1470,181 +1470,186 @@ def check_required_param(in_args, allowed_values):
         return in_args[0]
 
 
-try:
-    cmd = None
-    opt_debug = False
-    opt_down_fork_point = None
-    opt_fork_point = None
-    opt_list_commits = False
-    opt_onto = None
-    opt_stat = False
-    opt_verbose = False
+def main():
+    try:
+        cmd = None
+        opt_debug = False
+        opt_down_fork_point = None
+        opt_fork_point = None
+        opt_list_commits = False
+        opt_onto = None
+        opt_stat = False
+        opt_verbose = False
 
-    all_args = parse_options(sys.argv[1:], gnu=False)
-    if not all_args:
-        usage()
-        sys.exit(2)
-    cmd = all_args[0]
-    args = all_args[1:]
+        all_args = parse_options(sys.argv[1:], gnu=False)
+        if not all_args:
+            usage()
+            sys.exit(2)
+        cmd = all_args[0]
+        args = all_args[1:]
 
-    if cmd not in ("format", "help"):
-        try:
-            git_dir = get_git_dir()
-        except MacheteException:
-            raise MacheteException("Not a git repository")
+        if cmd not in ("format", "help"):
+            try:
+                git_dir = get_git_dir()
+            except MacheteException:
+                raise MacheteException("Not a git repository")
 
-        definition_file = os.path.join(git_dir, "machete")
-        if cmd not in ("discover", "infer") and not os.path.exists(definition_file):
-            open(definition_file, 'w').close()
+            definition_file = os.path.join(git_dir, "machete")
+            if cmd not in ("discover", "infer") and not os.path.exists(definition_file):
+                open(definition_file, 'w').close()
 
-    directions = "d[own]|f[irst]|l[ast]|n[ext]|p[rev]|r[oot]|u[p]"
+        directions = "d[own]|f[irst]|l[ast]|n[ext]|p[rev]|r[oot]|u[p]"
 
-    def parse_direction(cb, down_pick_mode):
-        if param in ("d", "down"):
-            return down(cb, pick_mode=down_pick_mode)
-        elif param in ("f", "first"):
-            return first_branch(cb)
-        elif param in ("l", "last"):
-            return last_branch(cb)
-        elif param in ("n", "next"):
-            return next_branch(cb)
-        elif param in ("p", "prev"):
-            return prev_branch(cb)
-        elif param in ("r", "root"):
-            return root_branch(cb, accept_self=False)
-        elif param in ("u", "up"):
-            return up(cb, prompt_if_inferred=False)
+        def parse_direction(cb, down_pick_mode):
+            if param in ("d", "down"):
+                return down(cb, pick_mode=down_pick_mode)
+            elif param in ("f", "first"):
+                return first_branch(cb)
+            elif param in ("l", "last"):
+                return last_branch(cb)
+            elif param in ("n", "next"):
+                return next_branch(cb)
+            elif param in ("p", "prev"):
+                return prev_branch(cb)
+            elif param in ("r", "root"):
+                return root_branch(cb, accept_self=False)
+            elif param in ("u", "up"):
+                return up(cb, prompt_if_inferred=False)
+            else:
+                raise MacheteException("Usage: git machete %s %s" % (cmd, directions))
+
+        if cmd == "add":
+            param = check_optional_param(parse_options(args, "o:", ["onto="]))
+            read_definition_file()
+            add(param or current_branch())
+        elif cmd == "anno":
+            params = parse_options(args)
+            read_definition_file()
+            if params:
+                annotate(params)
+            else:
+                print_annotation()
+        elif cmd == "delete-unmanaged":
+            expect_no_param(parse_options(args))
+            read_definition_file()
+            delete_unmanaged()
+        elif cmd in ("d", "diff"):
+            param = check_optional_param(parse_options(args, "s", ["stat"]))
+            # No need to read definition file.
+            diff(param) # passing None if not specified
+        elif cmd == "discover":
+            expect_no_param(parse_options(args, "l", ["list-commits"]))
+            # No need to read definition file.
+            discover_tree()
+        elif cmd in ("e", "edit"):
+            expect_no_param(parse_options(args))
+            # No need to read definition file.
+            edit()
+        elif cmd == "file":
+            expect_no_param(parse_options(args))
+            # No need to read definition file.
+            print definition_file
+        elif cmd == "fork-point":
+            param = check_optional_param(parse_options(args))
+            # No need to read definition file.
+            print fork_point(param or current_branch())
+        elif cmd == "format":
+            # No need to read definition file.
+            usage("format")
+        elif cmd in ("g", "go"):
+            param = check_required_param(parse_options(args), directions)
+            read_definition_file()
+            cb = current_branch()
+            dest = parse_direction(cb, down_pick_mode=True)
+            if dest != cb:
+                go(dest)
+        elif cmd == "help":
+            param = check_optional_param(parse_options(args))
+            # No need to read definition file.
+            usage(param)
+        elif cmd == "infer":
+            expect_no_param(parse_options(args, "l", ["list-commits"]))
+            # No need to read definition file.
+            discover_tree()
+        elif cmd == "list":
+            allowed_values = "managed|slidable|slidable-after <branch>|unmanaged"
+            in_args = parse_options(args)
+            if not in_args or len(in_args) > 2:
+                raise MacheteException("'%s' expects argument(s): %s" % (cmd, allowed_values))
+            elif not in_args[0]:
+                raise MacheteException("Argument to '%s' cannot be empty; expected %s" % (cmd, allowed_values))
+            elif in_args[0][0] == "-":
+                raise MacheteException("option '%s' not recognized" % in_args[0])
+            elif in_args[0] in ("managed", "slidable", "unmanaged") and len(in_args) == 2:
+                raise MacheteException("'%s %s' doesn't expect an extra argument" % (cmd, in_args[0]))
+            elif in_args[0] == "slidable-after" and len(in_args) == 1:
+                raise MacheteException("'%s %s' requires an extra <branch> argument" % (cmd, in_args[0]))
+
+            param = in_args[0]
+            read_definition_file()
+            if param == "managed":
+                res = managed_branches
+            elif param == "slidable":
+                res = slidable()
+            elif param == "slidable-after":
+                b = in_args[1]
+                expect_in_managed_branches(b)
+                res = slidable_after(b)
+            elif param == "unmanaged":
+                res = excluding(local_branches(), managed_branches)
+            else:
+                raise MacheteException("Usage: git machete list " + allowed_values)
+            print "\n".join(res),
+        elif cmd in ("l", "log"):
+            param = check_optional_param(parse_options(args))
+            # No need to read definition file.
+            log(param or current_branch())
+        elif cmd == "prune-branches":
+            expect_no_param(parse_options(args))
+            read_definition_file()
+            delete_unmanaged()
+        elif cmd == "reapply":
+            args1 = parse_options(args, "f:", ["fork-point="])
+            expect_no_param(args1, ". Use '-f' or '--fork-point' to specify the fork point commit")
+            # No need to read definition file.
+            cb = current_branch()
+            reapply(cb, opt_fork_point or fork_point(cb))
+        elif cmd == "show":
+            param = check_required_param(parse_options(args), directions)
+            read_definition_file()
+            print parse_direction(current_branch(), down_pick_mode=False)
+        elif cmd == "slide-out":
+            params = parse_options(args, "d:", ["down-fork-point="])
+            read_definition_file()
+            slide_out(params or [current_branch()])
+        elif cmd in ("s", "status"):
+            expect_no_param(parse_options(args, "lr:", ["list-commits", "remote="]))
+            read_definition_file()
+            status()
+        elif cmd == "traverse":
+            expect_no_param(parse_options(args, "lr:", ["list-commits", "remote="]))
+            read_definition_file()
+            traverse()
+        elif cmd == "update":
+            args1 = parse_options(args, "f:", ["fork-point="])
+            expect_no_param(args1, ". Use '-f' or '--fork-point' to specify the fork point commit")
+            read_definition_file()
+            cb = current_branch()
+            update(cb, opt_fork_point or fork_point(cb))
         else:
-            raise MacheteException("Usage: git machete %s %s" % (cmd, directions))
+            short_usage()
+            raise MacheteException("\nUnknown command: '%s'. Use 'git machete help' to list possible commands" % cmd)
 
-    if cmd == "add":
-        param = check_optional_param(parse_options(args, "o:", ["onto="]))
-        read_definition_file()
-        add(param or current_branch())
-    elif cmd == "anno":
-        params = parse_options(args)
-        read_definition_file()
-        if params:
-            annotate(params)
-        else:
-            print_annotation()
-    elif cmd == "delete-unmanaged":
-        expect_no_param(parse_options(args))
-        read_definition_file()
-        delete_unmanaged()
-    elif cmd in ("d", "diff"):
-        param = check_optional_param(parse_options(args, "s", ["stat"]))
-        # No need to read definition file.
-        diff(param) # passing None if not specified
-    elif cmd == "discover":
-        expect_no_param(parse_options(args, "l", ["list-commits"]))
-        # No need to read definition file.
-        discover_tree()
-    elif cmd in ("e", "edit"):
-        expect_no_param(parse_options(args))
-        # No need to read definition file.
-        edit()
-    elif cmd == "file":
-        expect_no_param(parse_options(args))
-        # No need to read definition file.
-        print definition_file
-    elif cmd == "fork-point":
-        param = check_optional_param(parse_options(args))
-        # No need to read definition file.
-        print fork_point(param or current_branch())
-    elif cmd == "format":
-        # No need to read definition file.
-        usage("format")
-    elif cmd in ("g", "go"):
-        param = check_required_param(parse_options(args), directions)
-        read_definition_file()
-        cb = current_branch()
-        dest = parse_direction(cb, down_pick_mode=True)
-        if dest != cb:
-            go(dest)
-    elif cmd == "help":
-        param = check_optional_param(parse_options(args))
-        # No need to read definition file.
-        usage(param)
-    elif cmd == "infer":
-        expect_no_param(parse_options(args, "l", ["list-commits"]))
-        # No need to read definition file.
-        discover_tree()
-    elif cmd == "list":
-        allowed_values = "managed|slidable|slidable-after <branch>|unmanaged"
-        in_args = parse_options(args)
-        if not in_args or len(in_args) > 2:
-            raise MacheteException("'%s' expects argument(s): %s" % (cmd, allowed_values))
-        elif not in_args[0]:
-            raise MacheteException("Argument to '%s' cannot be empty; expected %s" % (cmd, allowed_values))
-        elif in_args[0][0] == "-":
-            raise MacheteException("option '%s' not recognized" % in_args[0])
-        elif in_args[0] in ("managed", "slidable", "unmanaged") and len(in_args) == 2:
-            raise MacheteException("'%s %s' doesn't expect an extra argument" % (cmd, in_args[0]))
-        elif in_args[0] == "slidable-after" and len(in_args) == 1:
-            raise MacheteException("'%s %s' requires an extra <branch> argument" % (cmd, in_args[0]))
-
-        param = in_args[0]
-        read_definition_file()
-        if param == "managed":
-            res = managed_branches
-        elif param == "slidable":
-            res = slidable()
-        elif param == "slidable-after":
-            b = in_args[1]
-            expect_in_managed_branches(b)
-            res = slidable_after(b)
-        elif param == "unmanaged":
-            res = excluding(local_branches(), managed_branches)
-        else:
-            raise MacheteException("Usage: git machete list " + allowed_values)
-        print "\n".join(res),
-    elif cmd in ("l", "log"):
-        param = check_optional_param(parse_options(args))
-        # No need to read definition file.
-        log(param or current_branch())
-    elif cmd == "prune-branches":
-        expect_no_param(parse_options(args))
-        read_definition_file()
-        delete_unmanaged()
-    elif cmd == "reapply":
-        args1 = parse_options(args, "f:", ["fork-point="])
-        expect_no_param(args1, ". Use '-f' or '--fork-point' to specify the fork point commit")
-        # No need to read definition file.
-        cb = current_branch()
-        reapply(cb, opt_fork_point or fork_point(cb))
-    elif cmd == "show":
-        param = check_required_param(parse_options(args), directions)
-        read_definition_file()
-        print parse_direction(current_branch(), down_pick_mode=False)
-    elif cmd == "slide-out":
-        params = parse_options(args, "d:", ["down-fork-point="])
-        read_definition_file()
-        slide_out(params or [current_branch()])
-    elif cmd in ("s", "status"):
-        expect_no_param(parse_options(args, "lr:", ["list-commits", "remote="]))
-        read_definition_file()
-        status()
-    elif cmd == "traverse":
-        expect_no_param(parse_options(args, "lr:", ["list-commits", "remote="]))
-        read_definition_file()
-        traverse()
-    elif cmd == "update":
-        args1 = parse_options(args, "f:", ["fork-point="])
-        expect_no_param(args1, ". Use '-f' or '--fork-point' to specify the fork point commit")
-        read_definition_file()
-        cb = current_branch()
-        update(cb, opt_fork_point or fork_point(cb))
-    else:
+    except getopt.GetoptError as e:
         short_usage()
-        raise MacheteException("\nUnknown command: '%s'. Use 'git machete help' to list possible commands" % cmd)
+        print >> sys.stderr, str(e)
+        sys.exit(2)
+    except MacheteException as e:
+        print >> sys.stderr, str(e)
+        sys.exit(1)
+    except StopTraversal:
+        pass
 
-except getopt.GetoptError as e:
-    short_usage()
-    print >> sys.stderr, str(e)
-    sys.exit(2)
-except MacheteException as e:
-    print >> sys.stderr, str(e)
-    sys.exit(1)
-except StopTraversal:
-    pass
+
+if __name__ == "__main__":
+    main()

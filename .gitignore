@@ -1,3 +1,9 @@
-.idea/
-*.swp
+git-machete
 
+*.pyc
+.tox/
+*.egg-info/
+.idea/
+.python-version
+.stestr/
+*.swp

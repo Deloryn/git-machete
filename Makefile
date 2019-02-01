@@ -11,7 +11,11 @@ all:
 	@echo "usage: make install"
 	@echo "       make uninstall"
 
-install:
+build:
+	cp git_machete/cmd.py $(BINFILE)
+	chmod 755 $(BINFILE)
+
+install: build
 	install -d $(BINDIR)
 	install -m 0755 $(BINFILE) $(BINDIR)
 	install -d $(COMPDIR)
