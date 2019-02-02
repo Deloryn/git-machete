@@ -1,9 +1,17 @@
 git-machete
 
 *.pyc
+*.swp
+
 .tox/
 *.egg-info/
+.eggs/
+.stestr/
+
+build/
+dist/
+AUTHORS
+ChangeLog
+
 .idea/
 .python-version
-.stestr/
-*.swp

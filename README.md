@@ -19,6 +19,14 @@ $ cd git-machete
 $ sudo make install
 ```
 
+Installation could be done by following commands:
+
+```bash
+$ git clone https://github.com/VirtusLab/git-machete.git
+$ cd git-machete
+$ python setup.py install
+```
+
 ## Quick start
 
 ```bash
@@ -29,6 +37,10 @@ $ git machete go root
 $ git machete traverse
   # (put each branch one by one in sync with its parent and remote counterpart)
 ```
+
+## Contribute
+
+Use `tox -e venv` to setup virtual environment to work on that project in your favorite IDE. Use `.tox/venv/bin/python` as a reference `python` interpreter in your IDE.
 
 ## Reference
 
