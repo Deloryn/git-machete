@@ -11,21 +11,32 @@ If you work a with a git rebase flow, git machete will (vastly!) help you manage
 
 ## Install
 
-Run the following commands to install git machete:
-
-```bash
-$ git clone https://github.com/VirtusLab/git-machete.git
-$ cd git-machete
-$ sudo make install
-```
-
 Installation could be done by following commands:
 
 ```bash
 $ git clone https://github.com/VirtusLab/git-machete.git
 $ cd git-machete
-$ python setup.py install
+$ sudo python setup.py install
 ```
+
+To install you will need python with installed `pip` and `setuptools`.
+
+python could be installed with system packages or using [pyenv](https://github.com/pyenv/pyenv).
+
+Regular python env should have `pip` and `setuptools`.
+
+If python env is missing any of those tools, please execute following commands:
+
+```bash
+# missing pip? check with command: pip
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python get-pip.py
+
+# missing setuptools? check with command: pythom -m "import setuptools"
+pip install setuptools
+```
+
+[More](https://pip.pypa.io/en/stable/installing/) information about `pip` installation.
 
 ## Quick start
 
